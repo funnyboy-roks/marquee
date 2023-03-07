@@ -1,12 +1,19 @@
 # Marquee
 
-[![Documentation](https://docs.rs/marquee/badge.svg)](https://docs.rs/marquee/)
 [![Crates.io](https://img.shields.io/crates/v/marquee.svg)](https://crates.io/crates/marquee)
 
 This is a CLI tool that will convert each line of stdin into a "marquee"
 style output.  An example can be seen below.
 
 ![GIF of marquee usage](./img/usage.gif)
+
+## Install
+
+Install using Cargo:
+
+```sh
+cargo install marqee
+```
 
 ## Usage
 
