@@ -2,8 +2,10 @@
 
 [![Crates.io](https://img.shields.io/crates/v/marquee.svg)](https://crates.io/crates/marquee)
 
-This is a CLI tool that will convert each line of stdin into a "marquee"
-style output.  An example can be seen below.
+`marquee` is a CLI tool that will convert each line of input into a
+"marquee" style output (see below for example).  Marquee is designed for
+usage in user-facing output, though it is also possible to have it
+create a list of marquee output, using `marquee -ld0`.
 
 ![GIF of marquee usage](./img/usage.gif)
 
@@ -12,7 +14,7 @@ style output.  An example can be seen below.
 Install using Cargo:
 
 ```sh
-cargo install marqee
+cargo install marquee
 ```
 
 ## Usage
@@ -57,4 +59,15 @@ for more or PRs to implement these)
     - `parts: &[String]` - Parts that should rotate separately, this
     would require quite a large rewrite to be done well, I think
 - [ ] More CLI configuration
+- [ ] Perhaps a flag/subcommand that basically runs a better version of
+  `marquee -ld0` that works on each line of input.
+    - This would be nice to use in scripts/pipelines where we don't want
+    to output directly to the user, but perhaps save it into a file.
+    - This is sort of possible with `marquee -ld0`, but it's not too
+    elegant it doesn't work for multiple lines.
+    - Ideally, we move it to not need multiple threads, as well
+    - Perhaps we could make a command that returns an iterator that is
+    used in all applications, something like `MarqueeIter::new(line: String)`
+    that will be an `Iterator<Item = String>` where `.next()` calculates
+    the next string. This would be infinite if `--no-loop` is not set.
 
