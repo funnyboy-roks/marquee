@@ -28,6 +28,8 @@ struct Cli {
     /// The maximum width of each output line.
     ///
     /// If the length of the input < width, then it will just print the input.
+    ///
+    /// Note: This *only* impacts the moving content, the prefix/suffix is not included
     #[arg(short, long, value_name = "chars", default_value_t = 20)]
     width: usize,
 
@@ -104,6 +106,7 @@ fn start_timer(current_str: &Arc<Mutex<String>>, options: Cli) -> thread::JoinHa
         let mut i = 0;
         // The previous value that was shown, this is used for knowing when to reset `i`
         let mut prev = String::new();
+        let mut prev_out = String::new();
         loop {
             let start = Instant::now();
             let mut out = arc_str.lock().unwrap().clone();
@@ -186,6 +189,11 @@ fn start_timer(current_str: &Arc<Mutex<String>>, options: Cli) -> thread::JoinHa
 
             if options.same_line {
                 print!("\r{}", out);
+                if prev_out.len() > out.len() {
+                    // Clear the rest of the line
+                    print!("{}", " ".repeat(prev_out.len() - out.len()));
+                }
+                prev_out = out;
                 io::stdout().flush().unwrap();
             } else {
                 println!("{}", out);
