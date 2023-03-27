@@ -66,7 +66,7 @@ for more or PRs to implement these)
     - This is sort of possible with `marquee -ld0`, but it's not too
     elegant it doesn't work for multiple lines.
     - Ideally, we move it to not need multiple threads, as well
-    - Perhaps we could make a command that returns an iterator that is
+    - Perhaps we could make a function that returns an iterator that is
     used in all applications, something like `MarqueeIter::new(line: String)`
     that will be an `Iterator<Item = String>` where `.next()` calculates
     the next string. This would be infinite if `--no-loop` is not set.

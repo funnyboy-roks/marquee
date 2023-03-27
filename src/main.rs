@@ -109,12 +109,26 @@ fn start_timer(current_str: &Arc<Mutex<String>>, options: Cli) -> thread::JoinHa
         let mut prev_out = String::new();
         loop {
             let start = Instant::now();
-            let mut out = arc_str.lock().unwrap().clone();
+            let out = arc_str.lock().unwrap();
 
             // If there is no input, don't print anything
             if out.is_empty() {
+                // Manually drop the lock on `arc_str` so that the stdin thread can put
+                // something new into it.
+                // (this is probably not the best way, but it works :shrug:)
+                drop(out);
+
+                // sleep so that it doesn't loop as fast as possible and devour the CPU (totally
+                // not known from personal experience)
+                if let Some(remaining) = wait_time.checked_sub(start.elapsed()) {
+                    thread::sleep(remaining);
+                }
+
                 continue;
             }
+
+            let mut out = out.clone(); // Clone the String and drop the lock on `arc_str` so that we
+                                       // can receive new input
 
             // If `--json`, then parse the json
             let json: Option<JsonInput> = options
