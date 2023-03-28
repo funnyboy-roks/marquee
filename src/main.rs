@@ -98,7 +98,7 @@ fn utf_substring(string: &String, start: usize, count: usize) -> String {
 }
 
 /// Start the timer thread that will run the clock for the outputs
-fn start_timer(current_str: &Arc<Mutex<String>>, options: Cli) -> thread::JoinHandle<()> {
+fn start_timer(current_str: &Arc<Mutex<Option<String>>>, options: Cli) -> thread::JoinHandle<()> {
     let arc_str = Arc::clone(current_str);
     thread::spawn(move || {
         let wait_time = Duration::from_millis(options.delay);
@@ -112,7 +112,7 @@ fn start_timer(current_str: &Arc<Mutex<String>>, options: Cli) -> thread::JoinHa
             let str_value = arc_str.lock().unwrap();
 
             // If there is no input, don't print anything
-            if str_value.is_empty() {
+            if str_value.is_none() || str_value.as_ref().unwrap().is_empty() {
                 // Manually drop the lock on `arc_str` so that the stdin thread can put
                 // something new into it.
                 // (this is probably not the best way, but it works :shrug:)
@@ -127,13 +127,27 @@ fn start_timer(current_str: &Arc<Mutex<String>>, options: Cli) -> thread::JoinHa
                 continue;
             }
 
-            let mut out = str_value.clone(); // Clone the string so that it can be used
+            let mut out = str_value.as_ref().expect("error handled above").clone(); // Clone the string so that it can be used
             drop(str_value); // Drop `str_value` to remove the lock on `arc_str`.
 
             // If `--json`, then parse the json
-            let json: Option<JsonInput> = options
-                .json
-                .then(|| serde_json::from_str(&out).expect("Unable to parse provided JSON"));
+            let json: Option<Result<JsonInput, _>> =
+                options.json.then(|| serde_json::from_str(&out));
+
+            if json.is_some() {
+                if let Some(Err(err)) = &json {
+                    eprintln!("Error parsing JSON: {:?}", err);
+                    *arc_str.lock().unwrap() = None; // Reset the string because
+                                                     // there's no reason to keep trying
+                                                     // to parse the json
+                    if let Some(remaining) = wait_time.checked_sub(start.elapsed()) {
+                        thread::sleep(remaining);
+                    }
+                    continue;
+                }
+            }
+
+            let json = json.map(|c| c.expect("error handled above"));
 
             // If there is json, grab the string
             if let Some(JsonInput { content, .. }) = &json {
@@ -223,7 +237,7 @@ fn start_timer(current_str: &Arc<Mutex<String>>, options: Cli) -> thread::JoinHa
 
 fn main() {
     let options = Cli::parse();
-    let current_str = Arc::new(Mutex::new(String::new()));
+    let current_str = Arc::new(Mutex::new(Default::default()));
 
     let timer = start_timer(&current_str, options);
 
@@ -233,7 +247,7 @@ fn main() {
         let lines = stdin.lines();
         for line in lines {
             let mut lock = current_str.lock().unwrap();
-            *lock = line.unwrap();
+            *lock = Some(line.unwrap());
         }
     });
 
